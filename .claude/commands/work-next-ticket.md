@@ -82,8 +82,9 @@ Spawn each agent with its handoff block (below). Up to **2 fix rounds** per tick
    - Either has Fix items → fix round: `implement` with both Fix lists, then `test`, then both reviews again.
    - Both CLEAN → step 4.
 4. **File existing bugs** both reviews listed under *Existing bugs* (merge duplicates): follow `.claude/commands/report-issue.md` Steps 3–4 with the finding as the source. Label `bug` + `needs-triage` (those that exist on the team) — **never `ready-for-agent`**; the developer promotes them after triage.
-5. **`commit`**, with the union of files `implement` and `test` reported, and both reviews' Notes.
-6. **Comment the PR URL on the ticket** and stop. The ticket stays started until the PR merges; the next run's WIP guard picks up from there.
+5. **Tick the acceptance criteria** in this ticket's description: each `- [ ]` → `- [x]` (Linear `save_issue`, patching only those lines). After `test` PASS and both reviews CLEAN, every criterion is covered and reviewed. Only the current ticket — never read or update checkboxes on any other ticket, never search Done tickets. If the update fails, note it and continue.
+6. **`commit`**, with the union of files `implement` and `test` reported, and both reviews' Notes.
+7. **Comment the PR URL on the ticket** and stop. The ticket stays started until the PR merges; the next run's WIP guard picks up from there.
 
 ## Stopping
 
@@ -107,6 +108,7 @@ Acceptance Criteria:
 Seams: <from the spec's Testing Decisions, or "none — bug ticket" / "none — no-test">
 Fix round (only in a fix round):
 - file:line — source — problem
+Resuming (only when resuming with uncommitted changes): yes
 Developer reply (only when resuming after a stop): <reply>
 ```
 
@@ -154,8 +156,8 @@ A started ticket without a PR: check out its `gitBranchName` (no branch → step
 | `git log origin/<base_branch>..HEAD` | `git status --porcelain` | Resume at |
 |---|---|---|
 | empty | empty | 7.1 `implement` |
-| empty | changes | 7.2 `test` — it re-checks the work, then reviews follow |
-| commits | — | 7.5 `commit` — it pushes and opens the PR |
+| empty | changes | 7.1 `implement` with `Resuming: yes` — it finishes what's left, then the pipeline continues |
+| commits | — | 7.6 `commit` — it pushes and opens the PR |
 
 Fix rounds restart at 0 on resume.
 

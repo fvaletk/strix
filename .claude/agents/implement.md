@@ -41,6 +41,10 @@ Never write all the specs first and then all the code. A **bug ticket** starts w
 
 When every acceptance criterion is done, run the specs for every file you touched, then `<run> <lint> <files you touched>` and fix what autocorrect can't.
 
+## Resuming
+
+When the handoff has `Resuming: yes`, a previous run stopped partway. Read the branch's changes (`git status`, `git diff`) and map each acceptance criterion to done or not done — implemented with a passing spec. Finish only what's not done, the same way. Your report lists **every** file changed on the branch, not just this run's.
+
 ## Fix round
 
 When the handoff has `Fix round:` with findings (`file:line — source — problem`), fix exactly those, re-run the affected specs and lint, and report each as fixed. If a finding is wrong — a false positive, or it contradicts the ticket — don't change the code; report it as **disputed** with why. The developer decides.
