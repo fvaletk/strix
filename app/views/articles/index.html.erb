@@ -1,0 +1,23 @@
+<h1>Articles</h1>
+
+<%= form_with model: @article, url: articles_path do |form| %>
+  <% if @article.errors.any? %>
+    <ul role="alert">
+      <% @article.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  <% end %>
+  <%= form.label :url, "URL" %>
+  <%= form.text_field :url %>
+  <%= form.submit "Save" %>
+<% end %>
+
+<ul>
+  <% @articles.each do |article| %>
+    <li>
+      <%= link_to ArticlePresenter.new(article).display_title, article_path(article) %>
+      (<%= article.status %>)
+    </li>
+  <% end %>
+</ul>
