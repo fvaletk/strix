@@ -1,0 +1,28 @@
+{
+  "installed_at": "2026-11-14",
+  "files": {
+    "agents/commit.md": "557bfd403680fc3675fb70ec5c71d488143b26e7c268cc00b8db4a90c06c9f9b",
+    "agents/implement.md": "a27df9e57f025a2fd707bd46e893dc640421e187bb5ae271569937cd7e96f8a3",
+    "agents/review-spec.md": "b0dfaeb0c7bf895c8b31d0a868ae5825a42078fd1bb8b2fc5d05cc7543914b36",
+    "agents/review-standards.md": "779c3886cf00a46c5cb5da8feba091a92cbce195619c4f7e3de0e54bae22756e",
+    "agents/test.md": "7338508f239b8770cb5c687134b182953934e73c5dd132ab46944a9bd19165f2",
+    "commands/quality-check.md": "1bed0ca907207bf92319c5ca52130c5606513bf25eb2e29fb93e57f072f40bba",
+    "commands/report-issue.md": "60e1cf886d75060a71f93ed778e775c8f8e6eab3591159262f974fb68f828a12",
+    "commands/work-next-ticket.md": "f2cc4be73a4d3673f379871d5475be1d657ac5303782e1e50f1acbec170a21f7",
+    "hooks/block-sensitive-files.sh": "e662d4dafdb39ad1af433ca6001f52d43dfcdea9076907617692e8364ea429fd",
+    "hooks/guard-git.sh": "d0becc5ddc2e69c0f16eb29bb982bff583215c5b42635f8def5f5e22de85684b",
+    "rules/anti-patterns.md": "f7eb88b05cfc9f02772912a08cf76522a6d691c1d4c3c81fa5a5d654cc9df928",
+    "rules/controllers.md": "ae70a9ea8fd86e0cecce6b92cafdd2f7097ead98f69c44fdc458d16d9e6cfa15",
+    "rules/jobs.md": "9f1211ce4afec4832811110cc3afb2977fe63fc2b8a636e33320d56739c43d0c",
+    "rules/mailers.md": "ae8cf2576e11b55623625d32ca16612912a5056422e6314a4763f79e74e883b7",
+    "rules/migrations.md": "22b9f3c2ca7796eb74b7568b8b757c1b42c7159c2679bfbaeabf5384767c9ded",
+    "rules/models.md": "e29175027f34876bdad48cf9092f76998e9abe3b85da15035814cee00fef767b",
+    "rules/queries.md": "d9c709944681a388d374b6d9682c36654993c7298bf62a6998ce2d6b19300679",
+    "rules/services.md": "3a84442ed5db21709f4f2ca38d3df91d69da0a08179af8076a1157d3b72c1cd6",
+    "rules/testing.md": "8058bc4a39cb4188b38f63de191afd721be95e04aef944a6fa20506b7df941fe",
+    "rules/views.md": "dd908b619a75f40d526fa7d7a90a3503d20e7f7f1dc9c9e76865d3281598e9f3",
+    "settings.json": "a94b29fd7077cee688a4e51b1de884ac15579d7d2bca4124519bf014c1363260",
+    "skills/dependabot-review/SKILL.md": "293790c74e3368c06fa5b8277ada01e51cbea6125f95602ebbd25e303696fdeb",
+    "skills/security-audit/SKILL.md": "9c080e40de69da12804378633532358daa3800396ed45591a16a371517c1a6ca"
+  }
+}

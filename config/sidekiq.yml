@@ -1,0 +1,4 @@
+# Keep `pool` in config/database.yml >= concurrency.
+:concurrency: 5
+:queues:
+  - default
