@@ -1,0 +1,7 @@
+<h1><%= ArticlePresenter.new(@article).display_title %></h1>
+<dl>
+  <dt>URL</dt><dd><%= @article.url %></dd>
+  <dt>Title</dt><dd><%= @article.title %></dd>
+  <dt>Status</dt><dd><%= @article.status %></dd>
+</dl>
+<%= link_to "Back to Articles", articles_path %>
