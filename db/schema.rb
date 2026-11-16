@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_15_230506) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_16_000204) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -27,6 +27,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_15_230506) do
     t.datetime "updated_at", null: false
     t.index ["user_id", "url"], name: "index_articles_on_user_id_and_url", unique: true
     t.index ["user_id"], name: "index_articles_on_user_id"
+  end
+
+  create_table "llm_calls", force: :cascade do |t|
+    t.integer "purpose", null: false
+    t.string "model", null: false
+    t.integer "input_tokens"
+    t.integer "output_tokens"
+    t.integer "thinking_tokens"
+    t.integer "latency_ms"
+    t.integer "status", null: false
+    t.text "error_message"
+    t.string "subject_type"
+    t.bigint "subject_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["subject_type", "subject_id"], name: "index_llm_calls_on_subject"
   end
 
   create_table "users", force: :cascade do |t|
