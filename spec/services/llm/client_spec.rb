@@ -194,6 +194,221 @@ RSpec.describe Llm::Client do
     end
   end
 
+  describe "#chat" do
+    let(:tools) do
+      [ { name: "add_tag", description: "Attach a tag",
+          parameters: { type: "object", properties: { tag: { type: "string", enum: %w[ruby rails] } }, required: [ "tag" ] } } ]
+    end
+    let(:messages) { [ { role: :user, content: "Tag this" } ] }
+
+    def chat(**opts)
+      client.chat(system: "Be brief", messages: opts.delete(:messages) || messages, tools:, purpose: :tagging, **opts)
+    end
+
+    def chat_error(**opts)
+      chat(**opts)
+    rescue Llm::Error => e
+      e
+    end
+
+    def reply(parts, usage: { promptTokenCount: 20, candidatesTokenCount: 4, thoughtsTokenCount: 9 })
+      stub_request(:post, endpoint).to_return(
+        status: 200, headers: json_headers,
+        body: { candidates: [ { content: { role: "model", parts: } } ], usageMetadata: usage }.to_json
+      )
+    end
+
+    context "when Gemini answers with text" do
+      before { reply([ { text: "All done", thoughtSignature: "sig-text" } ]) }
+
+      it "returns the text, no tool calls and token usage" do
+        expect(chat).to have_attributes(text: "All done", tool_calls: [], input_tokens: 20, output_tokens: 4, thinking_tokens: 9)
+      end
+
+      it "does not surface thought parts as text" do
+        reply([ { text: "hmm", thought: true }, { text: "Answer" } ])
+        expect(chat.text).to eq("Answer")
+      end
+    end
+
+    context "when sending the request" do
+      before { reply([ { text: "ok" } ]) }
+
+      it "translates neutral tools into function declarations without a toolConfig", :aggregate_failures do # rubocop:disable RSpec/ExampleLength
+        chat
+        expect(sent_body["tools"]).to eq([ { "functionDeclarations" => [ {
+          "name" => "add_tag", "description" => "Attach a tag",
+          "parameters" => { "type" => "object", "properties" => { "tag" => { "type" => "string", "enum" => %w[ruby rails] } },
+                            "required" => [ "tag" ] }
+        } ] } ])
+        expect(sent_body).not_to include("toolConfig")
+      end
+
+      it "sends the system instruction, user message and thinking level", :aggregate_failures do # rubocop:disable RSpec/ExampleLength
+        chat(thinking: "high")
+        expect(sent_body).to include(
+          "systemInstruction" => { "parts" => [ { "text" => "Be brief" } ] },
+          "contents" => [ { "role" => "user", "parts" => [ { "text" => "Tag this" } ] } ]
+        )
+        expect(sent_body.dig("generationConfig", "thinkingConfig", "thinkingLevel")).to eq("high")
+      end
+
+      it "defaults to the configured thinking level" do
+        chat
+        expect(sent_body.dig("generationConfig", "thinkingConfig", "thinkingLevel")).to eq("medium")
+      end
+    end
+
+    context "when Gemini answers with one tool call" do
+      before { reply([ { functionCall: { name: "add_tag", args: { tag: "ruby" }, id: "c1" }, thoughtSignature: "sig-1" } ]) }
+
+      it "returns the call with id, name and parsed arguments", :aggregate_failures do
+        result = chat
+        expect(result.text).to be_nil
+        expect(result.tool_calls).to eq([ Llm::ToolCall.new(id: "c1", name: "add_tag", arguments: { "tag" => "ruby" }) ])
+      end
+    end
+
+    context "when Gemini answers with several tool calls" do
+      before do
+        reply([ { functionCall: { name: "add_tag", args: { tag: "ruby" }, id: "c1" }, thoughtSignature: "sig-1" },
+                { functionCall: { name: "add_tag", args: { tag: "rails" }, id: "c2" } } ])
+      end
+
+      it "returns every call in order" do
+        expect(chat.tool_calls.map(&:id)).to eq(%w[c1 c2])
+      end
+    end
+
+    context "when continuing with tool results" do # rubocop:disable RSpec/MultipleMemoizedHelpers
+      let(:first_parts) do
+        [ { "functionCall" => { "name" => "add_tag", "args" => { "tag" => "ruby" }, "id" => "c1" }, "thoughtSignature" => "sig-1" },
+          { "functionCall" => { "name" => "add_tag", "args" => { "tag" => "rails" }, "id" => "c2" } } ]
+      end
+      let(:first_turn) do
+        stub_request(:post, endpoint).to_return(status: 200, headers: json_headers,
+                                                body: { candidates: [ { content: { role: "model", parts: first_parts } } ] }.to_json)
+        chat
+      end
+      let(:followup) do
+        messages + [ first_turn.to_message,
+                     { role: :tool_result, tool_call_id: "c2", name: "add_tag", content: { ok: false } },
+                     { role: :tool_result, tool_call_id: "c1", name: "add_tag", content: { ok: true } } ]
+      end
+
+      before do
+        first_turn
+        WebMock.reset!
+        reply([ { text: "Finished" } ])
+      end
+
+      it "returns the final text" do
+        expect(chat(messages: followup).text).to eq("Finished")
+      end
+
+      it "echoes the model parts, signature included, exactly as received" do
+        chat(messages: followup)
+        expect(sent_body["contents"][1]).to eq("role" => "model", "parts" => first_parts)
+      end
+
+      it "sends one user turn with a functionResponse per call, matched by id" do # rubocop:disable RSpec/ExampleLength
+        chat(messages: followup)
+        expect(sent_body["contents"][2]).to eq(
+          "role" => "user",
+          "parts" => [ { "functionResponse" => { "id" => "c2", "name" => "add_tag", "response" => { "ok" => false } } },
+                       { "functionResponse" => { "id" => "c1", "name" => "add_tag", "response" => { "ok" => true } } } ]
+        )
+      end
+
+      it "rebuilds a model turn from tool calls when no provider data is present" do # rubocop:disable RSpec/ExampleLength
+        message = { role: :assistant, tool_calls: [ Llm::ToolCall.new(id: "c1", name: "add_tag", arguments: { "tag" => "ruby" }) ] }
+        chat(messages: messages + [ message ])
+        expect(sent_body["contents"][1]).to eq(
+          "role" => "model",
+          "parts" => [ { "functionCall" => { "name" => "add_tag", "args" => { "tag" => "ruby" }, "id" => "c1" } } ]
+        )
+      end
+    end
+
+    context "when the messages are malformed" do
+      before { reply([ { text: "ok" } ]) }
+
+      it "raises ArgumentError for an unknown role without a request or LlmCall", :aggregate_failures do
+        expect { chat(messages: [ { role: :robot, content: "hi" } ]) }.to raise_error(ArgumentError, /Unknown message role/)
+        expect(a_request(:post, endpoint)).not_to have_been_made
+        expect(LlmCall.count).to eq(0)
+      end
+
+      it "raises ArgumentError for a tool result missing tool_call_id without a request or LlmCall", :aggregate_failures do
+        bad = [ { role: :tool_result, name: "add_tag", content: {} } ]
+        expect { chat(messages: bad) }.to raise_error(ArgumentError, /tool_call_id/)
+        expect(a_request(:post, endpoint)).not_to have_been_made
+        expect(LlmCall.count).to eq(0)
+      end
+
+      it "raises ArgumentError for a user message missing content" do
+        expect { chat(messages: [ { role: :user } ]) }.to raise_error(ArgumentError, /content/)
+      end
+    end
+
+    context "when a tool result content is not a Hash" do
+      before { reply([ { text: "ok" } ]) }
+
+      it "wraps it as { result: content }" do
+        chat(messages: messages + [ { role: :tool_result, tool_call_id: "c1", name: "add_tag", content: "done" } ])
+        expect(sent_body.dig("contents", 1, "parts", 0, "functionResponse", "response")).to eq("result" => "done")
+      end
+    end
+
+    context "when there are no tools" do
+      before { reply([ { text: "ok" } ]) }
+
+      it "omits the tools key" do
+        client.chat(system: "Be brief", messages:, tools: [], purpose: :tagging)
+        expect(sent_body).not_to include("tools")
+      end
+    end
+
+    context "when logging" do
+      before { reply([ { text: "ok" } ]) }
+
+      it "logs a successful LlmCall with thinking tokens", :aggregate_failures do # rubocop:disable RSpec/ExampleLength
+        article = create(:article)
+        expect { chat(subject: article) }.to change(LlmCall, :count).by(1)
+        expect(LlmCall.last).to have_attributes(
+          purpose: "tagging", model: "gemini-3.5-flash-lite", status: "success",
+          input_tokens: 20, output_tokens: 4, thinking_tokens: 9, subject: article
+        )
+      end
+    end
+
+    context "when the call fails" do
+      [ 429, 503 ].each do |code|
+        it "raises a retryable Llm::Error on HTTP #{code} and logs it", :aggregate_failures do
+          stub_request(:post, endpoint).to_return(status: code, body: { error: { message: "nope" } }.to_json, headers: json_headers)
+          expect(chat_error).to have_attributes(retryable?: true)
+          expect(LlmCall.last).to have_attributes(status: "error", purpose: "tagging")
+        end
+      end
+
+      it "raises a non-retryable Llm::Error on HTTP 400" do
+        stub_request(:post, endpoint).to_return(status: 400, body: "{}", headers: json_headers)
+        expect(chat_error).to have_attributes(retryable?: false)
+      end
+
+      it "raises a retryable Llm::Error on timeout" do
+        stub_request(:post, endpoint).to_timeout
+        expect(chat_error).to have_attributes(retryable?: true)
+      end
+
+      it "raises a non-retryable Llm::Error when there is neither text nor a tool call and logs it", :aggregate_failures do
+        stub_request(:post, endpoint).to_return(status: 200, body: { candidates: [] }.to_json, headers: json_headers)
+        expect(chat_error).to have_attributes(retryable?: false)
+        expect(LlmCall.last).to have_attributes(status: "error")
+      end
+    end
+  end
+
   describe "#embed" do
     def embed_endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:batchEmbedContents"
     def unit = Array.new(1536) { |i| i.zero? ? 1.0 : 0.0 }
