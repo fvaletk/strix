@@ -193,4 +193,182 @@ RSpec.describe Llm::Client do
       end
     end
   end
+
+  describe "#embed" do
+    def embed_endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:batchEmbedContents"
+    def unit = Array.new(768) { |i| i.zero? ? 1.0 : 0.0 }
+    def other = Array.new(768) { |i| i == 1 ? 1.0 : 0.0 }
+    def embed_body = { embeddings: [ { values: unit }, { values: other } ] }
+
+    def embed(texts: %w[first second], task: :document, **opts)
+      client.embed(texts:, task:, **opts)
+    end
+
+    def embed_error(**opts)
+      embed(**opts)
+    rescue Llm::Error => e
+      e
+    end
+
+    context "when Gemini answers with vectors" do
+      before { stub_request(:post, embed_endpoint).to_return(status: 200, body: embed_body.to_json, headers: json_headers) }
+
+      it "returns one vector per text in input order" do
+        expect(embed).to eq([ unit, other ])
+      end
+
+      it "sends all texts in one batch request with the dimension and API key", :aggregate_failures do # rubocop:disable RSpec/ExampleLength
+        embed
+        expect(WebMock).to have_requested(:post, embed_endpoint).once.with(headers: { "x-goog-api-key" => "test-key" })
+        expect(sent_body["requests"]).to eq(
+          %w[first second].map do |text|
+            { "model" => "models/gemini-embedding-2",
+              "content" => { "parts" => [ { "text" => "title: none | text: #{text}" } ] },
+              "outputDimensionality" => 768 }
+          end
+        )
+      end
+
+      it "prefixes :query texts for question answering and sends no taskType", :aggregate_failures do
+        embed(task: :query)
+        expect(sent_body["requests"].map { |r| r.dig("content", "parts", 0, "text") })
+          .to eq([ "task: question answering | query: first", "task: question answering | query: second" ])
+        expect(sent_body["requests"].flat_map(&:keys)).not_to include("taskType")
+      end
+
+      it "normalizes vectors that are not unit length" do
+        scaled = Array.new(768) { |i| i.zero? ? 3.0 : 0.0 }
+        stub_request(:post, embed_endpoint).to_return(
+          status: 200, headers: json_headers, body: { embeddings: [ { values: scaled }, { values: other } ] }.to_json
+        )
+        expect(embed.first).to eq(unit)
+      end
+
+      it "returns [] without a request or LlmCall when there are no texts", :aggregate_failures do
+        expect { expect(embed(texts: [])).to eq([]) }.not_to change(LlmCall, :count)
+        expect(WebMock).not_to have_requested(:post, embed_endpoint)
+      end
+
+      it "rejects an unknown task" do
+        expect { embed(task: :other) }.to raise_error(ArgumentError)
+      end
+
+      it "logs a successful LlmCall without tokens when none are reported", :aggregate_failures do
+        article = create(:article)
+        expect { embed(subject: article) }.to change(LlmCall, :count).by(1)
+        expect(LlmCall.last).to have_attributes(
+          purpose: "embedding", model: "gemini-embedding-2", status: "success", subject: article, input_tokens: nil
+        )
+      end
+
+      it "logs input tokens when reported" do
+        with_usage = embed_body.merge(usageMetadata: { promptTokenCount: 9 })
+        stub_request(:post, embed_endpoint).to_return(status: 200, headers: json_headers, body: with_usage.to_json)
+        embed
+        expect(LlmCall.last.input_tokens).to eq(9)
+      end
+
+      it "logs the latency" do
+        embed
+        expect(LlmCall.last.latency_ms).to be >= 0
+      end
+    end
+
+    context "when there are more texts than one batch allows" do
+      let(:texts) { Array.new(150) { |i| "t#{i}" } }
+
+      # Echoes a one-hot vector per text, so each position is distinguishable.
+      def echo_response
+        lambda do |request|
+          vectors = JSON.parse(request.body)["requests"].map do |r|
+            index = r.dig("content", "parts", 0, "text")[/t(\d+)\z/, 1].to_i
+            { values: Array.new(768) { |i| i == index ? 1.0 : 0.0 } }
+          end
+          { status: 200, headers: json_headers, body: { embeddings: vectors }.to_json }
+        end
+      end
+
+      def batch_sizes
+        WebMock::RequestRegistry.instance.requested_signatures.hash.keys.map { |s| JSON.parse(s.body)["requests"].size }
+      end
+
+      it "splits into requests of at most 100 and returns vectors in input order", :aggregate_failures do
+        stub = stub_request(:post, embed_endpoint).to_return(echo_response)
+        result = embed(texts:)
+        expect(stub).to have_been_requested.twice
+        expect(batch_sizes).to contain_exactly(100, 50)
+        expect(result.map { |v| v.index(1.0) }).to eq((0...150).to_a)
+      end
+
+      it "writes one LlmCall per request", :aggregate_failures do
+        stub_request(:post, embed_endpoint).to_return(echo_response)
+        expect { embed(texts:) }.to change(LlmCall, :count).by(2)
+        expect(LlmCall.last(2).map(&:status)).to eq(%w[success success])
+      end
+
+      it "raises when a later group fails, keeping earlier calls as successes", :aggregate_failures do
+        stub_request(:post, embed_endpoint)
+          .to_return(echo_response)
+          .then.to_return(status: 503, body: { error: { message: "down" } }.to_json, headers: json_headers)
+        expect(embed_error(texts:)).to be_an(Llm::Error).and have_attributes(retryable?: true)
+        expect(LlmCall.last(2).map(&:status)).to eq(%w[success error])
+      end
+    end
+
+    context "when the response is wrong" do
+      it "raises and logs when a vector has the wrong length", :aggregate_failures do
+        stub_request(:post, embed_endpoint).to_return(
+          status: 200, headers: json_headers, body: { embeddings: [ { values: [ 0.1 ] }, { values: other } ] }.to_json
+        )
+        expect(embed_error).to be_an(Llm::Error).and have_attributes(retryable?: false, message: /768/)
+        expect(LlmCall.last).to have_attributes(status: "error", purpose: "embedding")
+      end
+
+      it "raises a logged Llm::Error when a vector has non-numeric elements", :aggregate_failures do # rubocop:disable RSpec/ExampleLength
+        bad = { values: Array.new(768) { |i| i.zero? ? "x" : 0.0 } }
+        stub_request(:post, embed_endpoint).to_return(
+          status: 200, headers: json_headers, body: { embeddings: [ bad, { values: other } ] }.to_json
+        )
+        expect(embed_error).to be_an(Llm::Error).and have_attributes(retryable?: false)
+        expect(LlmCall.last).to have_attributes(status: "error", purpose: "embedding")
+      end
+
+      it "raises when the vector count does not match the inputs" do
+        stub_request(:post, embed_endpoint).to_return(
+          status: 200, headers: json_headers, body: { embeddings: [ { values: unit } ] }.to_json
+        )
+        expect(embed_error).to be_an(Llm::Error).and have_attributes(retryable?: false)
+      end
+    end
+
+    context "when the call fails" do
+      [ 429, 500, 503 ].each do |code|
+        it "raises a retryable Llm::Error on HTTP #{code} and logs it", :aggregate_failures do
+          stub_request(:post, embed_endpoint).to_return(status: code, body: { error: { message: "nope" } }.to_json, headers: json_headers)
+          expect(embed_error).to have_attributes(retryable?: true)
+          expect(LlmCall.last).to have_attributes(status: "error", purpose: "embedding", error_message: /nope/)
+        end
+      end
+
+      it "raises a non-retryable Llm::Error on HTTP 400" do
+        stub_request(:post, embed_endpoint).to_return(status: 400, body: "{}", headers: json_headers)
+        expect(embed_error).to have_attributes(retryable?: false)
+      end
+
+      it "raises a retryable Llm::Error on timeout" do
+        stub_request(:post, embed_endpoint).to_timeout
+        expect(embed_error).to have_attributes(retryable?: true)
+      end
+
+      it "raises a non-retryable Llm::Error when the API key is missing" do
+        stub_const("ENV", ENV.to_h.except("GEMINI_API_KEY"))
+        expect(embed_error).to have_attributes(retryable?: false, message: /GEMINI_API_KEY/)
+      end
+
+      it "raises a non-retryable Llm::Error on a malformed response" do
+        stub_request(:post, embed_endpoint).to_return(status: 200, body: "<html>", headers: json_headers)
+        expect(embed_error).to have_attributes(retryable?: false)
+      end
+    end
+  end
 end
