@@ -7,6 +7,8 @@ module Llm
   class Client
     BASE_URL = "https://generativelanguage.googleapis.com".freeze
     TIMEOUT = 60
+    # batchEmbedContents accepts at most 100 texts per request.
+    EMBED_BATCH_SIZE = 100
     # gemini-embedding-2 has no task_type field; the task is expressed as a prefix on the text.
     EMBEDDING_PREFIXES = {
       document: "title: none | text: %<text>s",
@@ -33,6 +35,15 @@ module Llm
 
       model = @config.fetch(:embedding_model)
       dimensions = @config.fetch(:embedding_dimensions)
+      texts.each_slice(EMBED_BATCH_SIZE).flat_map do |group|
+        embed_batch(group, template:, model:, dimensions:, purpose:, subject:)
+      end
+    end
+
+    private
+
+    # One batchEmbedContents request, logged as one LlmCall.
+    def embed_batch(texts, template:, model:, dimensions:, purpose:, subject:)
       tracking(purpose:, model:, subject:) do |usage|
         requests = texts.map do |text|
           { model: "models/#{model}", content: { parts: [ { text: format(template, text:) } ] }, outputDimensionality: dimensions }
@@ -42,8 +53,6 @@ module Llm
         extract_vectors(data, count: texts.size, dimensions:)
       end
     end
-
-    private
 
     def request_body(system:, prompt:, schema:, thinking:)
       config = { thinkingConfig: { thinkingLevel: thinking.to_s } }

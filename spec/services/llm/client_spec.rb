@@ -274,6 +274,47 @@ RSpec.describe Llm::Client do
       end
     end
 
+    context "when there are more texts than one batch allows" do
+      let(:texts) { Array.new(150) { |i| "t#{i}" } }
+
+      # Echoes a one-hot vector per text, so each position is distinguishable.
+      def echo_response
+        lambda do |request|
+          vectors = JSON.parse(request.body)["requests"].map do |r|
+            index = r.dig("content", "parts", 0, "text")[/t(\d+)\z/, 1].to_i
+            { values: Array.new(768) { |i| i == index ? 1.0 : 0.0 } }
+          end
+          { status: 200, headers: json_headers, body: { embeddings: vectors }.to_json }
+        end
+      end
+
+      def batch_sizes
+        WebMock::RequestRegistry.instance.requested_signatures.hash.keys.map { |s| JSON.parse(s.body)["requests"].size }
+      end
+
+      it "splits into requests of at most 100 and returns vectors in input order", :aggregate_failures do
+        stub = stub_request(:post, embed_endpoint).to_return(echo_response)
+        result = embed(texts:)
+        expect(stub).to have_been_requested.twice
+        expect(batch_sizes).to contain_exactly(100, 50)
+        expect(result.map { |v| v.index(1.0) }).to eq((0...150).to_a)
+      end
+
+      it "writes one LlmCall per request", :aggregate_failures do
+        stub_request(:post, embed_endpoint).to_return(echo_response)
+        expect { embed(texts:) }.to change(LlmCall, :count).by(2)
+        expect(LlmCall.last(2).map(&:status)).to eq(%w[success success])
+      end
+
+      it "raises when a later group fails, keeping earlier calls as successes", :aggregate_failures do
+        stub_request(:post, embed_endpoint)
+          .to_return(echo_response)
+          .then.to_return(status: 503, body: { error: { message: "down" } }.to_json, headers: json_headers)
+        expect(embed_error(texts:)).to be_an(Llm::Error).and have_attributes(retryable?: true)
+        expect(LlmCall.last(2).map(&:status)).to eq(%w[success error])
+      end
+    end
+
     context "when the response is wrong" do
       it "raises and logs when a vector has the wrong length", :aggregate_failures do
         stub_request(:post, embed_endpoint).to_return(
