@@ -196,8 +196,8 @@ RSpec.describe Llm::Client do
 
   describe "#embed" do
     def embed_endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:batchEmbedContents"
-    def unit = Array.new(768) { |i| i.zero? ? 1.0 : 0.0 }
-    def other = Array.new(768) { |i| i == 1 ? 1.0 : 0.0 }
+    def unit = Array.new(1536) { |i| i.zero? ? 1.0 : 0.0 }
+    def other = Array.new(1536) { |i| i == 1 ? 1.0 : 0.0 }
     def embed_body = { embeddings: [ { values: unit }, { values: other } ] }
 
     def embed(texts: %w[first second], task: :document, **opts)
@@ -224,7 +224,7 @@ RSpec.describe Llm::Client do
           %w[first second].map do |text|
             { "model" => "models/gemini-embedding-2",
               "content" => { "parts" => [ { "text" => "title: none | text: #{text}" } ] },
-              "outputDimensionality" => 768 }
+              "outputDimensionality" => 1536 }
           end
         )
       end
@@ -237,7 +237,7 @@ RSpec.describe Llm::Client do
       end
 
       it "normalizes vectors that are not unit length" do
-        scaled = Array.new(768) { |i| i.zero? ? 3.0 : 0.0 }
+        scaled = Array.new(1536) { |i| i.zero? ? 3.0 : 0.0 }
         stub_request(:post, embed_endpoint).to_return(
           status: 200, headers: json_headers, body: { embeddings: [ { values: scaled }, { values: other } ] }.to_json
         )
@@ -282,7 +282,7 @@ RSpec.describe Llm::Client do
         lambda do |request|
           vectors = JSON.parse(request.body)["requests"].map do |r|
             index = r.dig("content", "parts", 0, "text")[/t(\d+)\z/, 1].to_i
-            { values: Array.new(768) { |i| i == index ? 1.0 : 0.0 } }
+            { values: Array.new(1536) { |i| i == index ? 1.0 : 0.0 } }
           end
           { status: 200, headers: json_headers, body: { embeddings: vectors }.to_json }
         end
@@ -320,12 +320,12 @@ RSpec.describe Llm::Client do
         stub_request(:post, embed_endpoint).to_return(
           status: 200, headers: json_headers, body: { embeddings: [ { values: [ 0.1 ] }, { values: other } ] }.to_json
         )
-        expect(embed_error).to be_an(Llm::Error).and have_attributes(retryable?: false, message: /768/)
+        expect(embed_error).to be_an(Llm::Error).and have_attributes(retryable?: false, message: /1536/)
         expect(LlmCall.last).to have_attributes(status: "error", purpose: "embedding")
       end
 
       it "raises a logged Llm::Error when a vector has non-numeric elements", :aggregate_failures do # rubocop:disable RSpec/ExampleLength
-        bad = { values: Array.new(768) { |i| i.zero? ? "x" : 0.0 } }
+        bad = { values: Array.new(1536) { |i| i.zero? ? "x" : 0.0 } }
         stub_request(:post, embed_endpoint).to_return(
           status: 200, headers: json_headers, body: { embeddings: [ bad, { values: other } ] }.to_json
         )
