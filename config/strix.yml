@@ -4,3 +4,6 @@ shared:
     thinking_level: medium
     embedding_model: gemini-embedding-2
     embedding_dimensions: 1536
+  extraction:
+    min_words: 200
+    timeout_seconds: 10
