@@ -40,6 +40,19 @@ RSpec.describe "Articles", type: :request do
       expect(response.body).to include("https://example.com/a", "Hello", "ready")
     end
 
+    it "shows the Summary TL;DR and key points when present", :aggregate_failures do
+      article = create(:article, :ready, user:, summary_tldr: "Short take. Second sentence.",
+                                         summary_key_points: [ "Point one", "Point two", "Point three" ])
+      get "/articles/#{article.id}"
+      expect(response.body).to include("Short take. Second sentence.", "Point one", "Point two", "Point three")
+    end
+
+    it "omits the Summary section when absent" do
+      article = create(:article, :ready, user:)
+      get "/articles/#{article.id}"
+      expect(response.body).not_to include("TL;DR")
+    end
+
     it "returns 404 for another User's Article" do
       other = create(:article)
       get "/articles/#{other.id}"
