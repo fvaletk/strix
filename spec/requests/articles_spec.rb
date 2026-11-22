@@ -53,6 +53,20 @@ RSpec.describe "Articles", type: :request do
       expect(response.body).not_to include("TL;DR")
     end
 
+    it "shows the Article's Tags and no failure notice", :aggregate_failures do
+      article = create(:article, :ready, user:)
+      article.tags << create(:tag, user:, name: "bees", description: "About bees")
+      get "/articles/#{article.id}"
+      expect(response.body).to include("bees", "About bees")
+      expect(response.body).not_to include("Tagging failed")
+    end
+
+    it "shows a tagging failed notice when the flag is set" do
+      article = create(:article, :ready, user:, tagging_failed: true)
+      get "/articles/#{article.id}"
+      expect(response.body).to include("Tagging failed")
+    end
+
     it "returns 404 for another User's Article" do
       other = create(:article)
       get "/articles/#{other.id}"

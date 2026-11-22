@@ -2,6 +2,8 @@ class Article < ApplicationRecord
   TRACKING_PARAMS = /\A(utm_.*|fbclid|gclid)\z/i
 
   belongs_to :user
+  has_many :article_tags, dependent: :destroy
+  has_many :tags, through: :article_tags
 
   enum :status, { processing: 0, ready: 1, failed: 2 }
 

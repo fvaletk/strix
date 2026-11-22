@@ -16,4 +16,17 @@
     </ol>
   </section>
 <% end %>
+<% if @article.tagging_failed? %>
+  <p role="status">Tagging failed</p>
+<% end %>
+<% if @article.tags.any? %>
+  <section>
+    <h2>Tags</h2>
+    <ul>
+      <% @article.tags.order(:name).each do |tag| %>
+        <li><%= tag.name %> <small><%= tag.description %></small></li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
 <%= link_to "Back to Articles", articles_path %>
