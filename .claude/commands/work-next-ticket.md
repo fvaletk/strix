@@ -11,7 +11,7 @@ Runs one Linear ticket through the agent pipeline on its own branch and opens a 
 
 Read `CLAUDE.md` `## Project config`: `linear_team`, `linear_project`, `base_branch`, `run`. If a key is missing or still a `{{…}}` placeholder, say which and stop — the developer fills it in `CLAUDE.md`.
 
-**Labels:** `ready-for-agent`, `needs-triage`, `bug` — or the strings mapped to those roles in `docs/agents/triage-labels.md`, if it exists. **States:** match by type, not name (Todo = unstarted, In Progress = started, Done = completed), since teams rename them.
+**Labels:** `ready-for-agent`, `needs-triage`, `bug` — or the strings mapped to those roles in `docs/agents/triage-labels.md`, if it exists. **States:** match by type, not name (Todo = unstarted, In Progress = started, Done = completed), since teams rename them. Review has no type of its own: it's the started-type state whose name contains `review` (case-insensitive). If the team has none, skip the move and say so in the report.
 
 ## 1. WIP guard
 
@@ -19,7 +19,7 @@ One ticket in flight. Find tickets in `linear_project` assigned to me in a start
 
 - **No PR, last comment is a `Pipeline stopped` note** with no reply from the developer after it → report `Waiting on you: <ticket> — <reason>` and stop. With a reply → resume (§Resuming) and pass the reply to `implement`.
 - **No PR otherwise** → resume (§Resuming).
-- **PR open** → `gh pr checks <gitBranchName>`, report one line, stop:
+- **PR open** → if the ticket isn't in Review, move it there. Then `gh pr checks <gitBranchName>`, report one line, stop:
   - passing → `Waiting for review: <PR URL> (CI ✓)`
   - pending → `Waiting for CI: <PR URL>`
   - failing → `CI failing on <PR URL>: <check names>` plus the failing step's last ~30 lines (`gh run view <run-id> --log-failed`). Don't fix it — the developer decides.
@@ -84,7 +84,7 @@ Spawn each agent with its handoff block (below). Up to **2 fix rounds** per tick
 4. **File existing bugs** both reviews listed under *Existing bugs* (merge duplicates): follow `.claude/commands/report-issue.md` Steps 3–4 with the finding as the source. Label `bug` + `needs-triage` (those that exist on the team) — **never `ready-for-agent`**; the developer promotes them after triage.
 5. **Tick the acceptance criteria** in this ticket's description: each `- [ ]` → `- [x]` (Linear `save_issue`, patching only those lines). After `test` PASS and both reviews CLEAN, every criterion is covered and reviewed. Only the current ticket — never read or update checkboxes on any other ticket, never search Done tickets. If the update fails, note it and continue.
 6. **`commit`**, with the union of files `implement` and `test` reported, and both reviews' Notes.
-7. **Comment the PR URL on the ticket** and stop. The ticket stays started until the PR merges; the next run's WIP guard picks up from there.
+7. **Move the ticket to Review and comment the PR URL** on it, then stop. If the move fails, note it and continue. Review is still a started state, so the next run's WIP guard picks it up until the PR merges.
 
 ## Stopping
 
