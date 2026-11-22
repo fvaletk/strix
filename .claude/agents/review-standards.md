@@ -2,7 +2,8 @@
 name: review-standards
 description: >
   Read-only review of a ticket branch's diff against the repo's documented
-  conventions plus a code-smell baseline. Pass the base ref and branch. Runs
+  conventions plus a code-smell baseline. Pass the base ref, branch, and the
+  ticket's description and acceptance criteria. Runs
   in parallel with review-spec after the test agent passes.
 tools: Read, Grep, Glob, Bash
 model: sonnet
@@ -29,6 +30,8 @@ Skip anything RuboCop or Brakeman enforces — the `test` agent already ran them
 ## Step 3 — Review
 
 **Fix** — the diff breaks a documented standard. Cite it (file + the rule).
+
+Rules are defaults; the ticket is the decision. Where the description or acceptance criteria explicitly require what a rule forbids, it's not a Fix — list it as a Note: `ticket overrides rules/<file>.md — <what>`. Only an explicit requirement counts, not one you infer.
 
 **Note** — a smell from the baseline below; always a judgement call, never a Fix. A documented standard overrides the baseline: where the repo endorses something the baseline would flag, don't flag it.
 

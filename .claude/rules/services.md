@@ -18,7 +18,7 @@ paths:
     def failure? = !success
   end
   ```
-- Business-rule failures return `Result.failure("message", code: :symbol)` — don't raise. Rescue specific exceptions, never bare `StandardError`
+- Business-rule failures — outcomes the caller branches on — return `Result.failure("message", code: :symbol)`; don't raise. Failures of an external dependency (malformed API response, timeout) raise a namespaced error class (`<Client>::InvalidResponseError`) so the calling job can retry or mark the record failed. Rescue specific exceptions, never bare `StandardError`
 - Namespace by domain: `Orders::CancelService`, `Reports::GenerateService`
 - Wrap multi-model writes in `ActiveRecord::Base.transaction`; enqueue jobs and send mail after it commits — a job enqueued inside the transaction can run before the rows are visible
 - Mail: `deliver_later`; `deliver_now` only inside a job
