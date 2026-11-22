@@ -8,7 +8,7 @@
     "agents/test.md": "7338508f239b8770cb5c687134b182953934e73c5dd132ab46944a9bd19165f2",
     "commands/quality-check.md": "1bed0ca907207bf92319c5ca52130c5606513bf25eb2e29fb93e57f072f40bba",
     "commands/report-issue.md": "60e1cf886d75060a71f93ed778e775c8f8e6eab3591159262f974fb68f828a12",
-    "commands/work-next-ticket.md": "169b48291d02908859cafddfa044f8602062db87b613be49e42bb6b3737b19a6",
+    "commands/work-next-ticket.md": "4f3cbd986a070483f97de5f418ad11113ef9db62b36075bb718ceace35d795e9",
     "hooks/block-sensitive-files.sh": "e662d4dafdb39ad1af433ca6001f52d43dfcdea9076907617692e8364ea429fd",
     "hooks/guard-git.sh": "d0becc5ddc2e69c0f16eb29bb982bff583215c5b42635f8def5f5e22de85684b",
     "rules/anti-patterns.md": "f7eb88b05cfc9f02772912a08cf76522a6d691c1d4c3c81fa5a5d654cc9df928",
