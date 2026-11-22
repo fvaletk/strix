@@ -126,6 +126,10 @@ Implement report: <files changed, behaviors → specs, notes>
 ```
 Base: origin/<base_branch>
 Branch: <gitBranchName>
+Ticket: <ID> — <title>
+Description: <full description>
+Acceptance Criteria:
+- [ ] ...
 ```
 
 **review-spec:**
