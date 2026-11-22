@@ -71,7 +71,7 @@ end
 
 group :test do
   gem "shoulda-matchers", "~> 8.0"
-  gem "webmock", "~> 3.34"
+  gem "webmock", "~> 3.35"
 end
 
 # Readable main-text extraction for Extraction::StaticFetch
