@@ -4,7 +4,7 @@ x-app: &app
     context: .
     dockerfile: Dockerfile.dev
     args:
-      RUBY_VERSION: "3.4.12"
+      RUBY_VERSION: "3.4.13"
   env_file:
     - path: .env      # app credentials, once there are any
       required: false
