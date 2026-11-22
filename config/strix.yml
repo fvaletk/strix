@@ -7,3 +7,6 @@ shared:
   extraction:
     min_words: 200
     timeout_seconds: 10
+  chunking:
+    words: 375
+    overlap_words: 50
