@@ -4,6 +4,7 @@ class Article < ApplicationRecord
   belongs_to :user
   has_many :article_tags, dependent: :destroy
   has_many :tags, through: :article_tags
+  has_many :chunks, -> { order(:position) }, dependent: :destroy
 
   enum :status, { processing: 0, ready: 1, failed: 2 }
 

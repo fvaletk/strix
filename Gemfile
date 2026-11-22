@@ -45,6 +45,9 @@ gem "sidekiq", "~> 8.1"
 # HTTP client for Llm::Client (no provider SDKs)
 gem "faraday", "~> 2.0"
 
+# Vector columns and nearest-neighbor queries for pgvector
+gem "neighbor"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_100002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "vector"
 
   create_table "article_tags", force: :cascade do |t|
     t.bigint "article_id", null: false
@@ -39,6 +40,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_000001) do
     t.jsonb "summary_key_points", default: [], null: false
     t.index ["user_id", "url"], name: "index_articles_on_user_id_and_url", unique: true
     t.index ["user_id"], name: "index_articles_on_user_id"
+  end
+
+  create_table "chunks", force: :cascade do |t|
+    t.bigint "article_id", null: false
+    t.integer "position", null: false
+    t.text "content", null: false
+    t.integer "word_count", null: false
+    t.vector "embedding", limit: 1536, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["article_id", "position"], name: "index_chunks_on_article_id_and_position", unique: true
+    t.index ["article_id"], name: "index_chunks_on_article_id"
+    t.index ["embedding"], name: "index_chunks_on_embedding", opclass: :vector_cosine_ops, using: :hnsw
   end
 
   create_table "llm_calls", force: :cascade do |t|
@@ -75,5 +89,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_000001) do
   add_foreign_key "article_tags", "articles"
   add_foreign_key "article_tags", "tags"
   add_foreign_key "articles", "users"
+  add_foreign_key "chunks", "articles"
   add_foreign_key "tags", "users"
 end
