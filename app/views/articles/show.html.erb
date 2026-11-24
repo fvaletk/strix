@@ -3,6 +3,9 @@
   <dt>URL</dt><dd><%= @article.url %></dd>
   <dt>Title</dt><dd><%= @article.title %></dd>
   <dt>Status</dt><dd><%= @article.status %></dd>
+  <% if @article.failed? && @article.failure_reason.present? %>
+    <dt>Failure reason</dt><dd><%= @article.failure_reason %></dd>
+  <% end %>
 </dl>
 <% if @article.summary_tldr.present? %>
   <section>
@@ -18,6 +21,7 @@
 <% end %>
 <% if @article.tagging_failed? %>
   <p role="status">Tagging failed</p>
+  <%= button_to "Retry tagging", article_tagging_path(@article) %>
 <% end %>
 <% if @article.tags.any? %>
   <section>
