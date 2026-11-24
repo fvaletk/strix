@@ -83,6 +83,20 @@ RSpec.describe "Articles", type: :request do
       expect(response).to redirect_to(article_path(article))
     end
 
+    it "enqueues ProcessArticleJob with the new Article's ID" do
+      post "/articles", params: { article: { url: "https://example.com/post" } }
+
+      expect(ProcessArticleJob).to have_been_enqueued.with(user.articles.last.id)
+    end
+
+    it "does not enqueue when the URL is a duplicate or invalid", :aggregate_failures do
+      create(:article, user:, url: "https://example.com/post")
+      post "/articles", params: { article: { url: "https://example.com/post" } }
+      post "/articles", params: { article: { url: "ftp://example.com/a" } }
+
+      expect(ProcessArticleJob).not_to have_been_enqueued
+    end
+
     it "redirects to the existing Article and creates nothing when the URL is already saved", :aggregate_failures do
       existing = create(:article, user:, url: "https://example.com/post")
 
@@ -105,6 +119,44 @@ RSpec.describe "Articles", type: :request do
     it "re-renders with an error for a blank URL" do
       post "/articles", params: { article: { url: "" } }
       expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
+  describe "POST /articles/:id/tagging" do
+    it "enqueues TagArticleJob and redirects back to the Article", :aggregate_failures do
+      article = create(:article, :ready, user:, tagging_failed: true)
+      post "/articles/#{article.id}/tagging"
+
+      expect(TagArticleJob).to have_been_enqueued.with(article.id)
+      expect(response).to redirect_to(article_path(article))
+    end
+
+    it "returns 404 and enqueues nothing for another User's Article", :aggregate_failures do
+      other = create(:article)
+      post "/articles/#{other.id}/tagging"
+
+      expect(response).to have_http_status(:not_found)
+      expect(TagArticleJob).not_to have_been_enqueued
+    end
+  end
+
+  describe "GET /articles/:id status and retry" do
+    it "shows a Retry tagging button when tagging failed" do
+      article = create(:article, :ready, user:, tagging_failed: true)
+      get "/articles/#{article.id}"
+      expect(response.body).to include("Retry tagging", "/articles/#{article.id}/tagging")
+    end
+
+    it "hides the Retry tagging button otherwise" do
+      article = create(:article, :ready, user:)
+      get "/articles/#{article.id}"
+      expect(response.body).not_to include("Retry tagging")
+    end
+
+    it "shows the failure reason when failed" do
+      article = create(:article, :failed, user:, failure_reason: "needs JavaScript")
+      get "/articles/#{article.id}"
+      expect(response.body).to include("failed", "needs JavaScript")
     end
   end
 end
