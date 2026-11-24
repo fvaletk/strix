@@ -149,6 +149,7 @@ Ticket: <ID> — <title>
 Ticket URL: <url>
 Branch: <gitBranchName>
 Files changed: <union of implement's and test's lists>
+Decisions: <implement's Decisions from its latest report, verbatim>
 Review notes: <both reviews' Notes, verbatim>
 Test results: <test's verdict and suite summary>
 ```
