@@ -1,14 +1,14 @@
 {
   "installed_at": "2026-11-14",
   "files": {
-    "agents/commit.md": "557bfd403680fc3675fb70ec5c71d488143b26e7c268cc00b8db4a90c06c9f9b",
-    "agents/implement.md": "d5a7278da2ee7829ef62b1fd329a3831682982c76c15a48b98d86278c3e7e9e9",
+    "agents/commit.md": "ff1c857cdb0fd8fa274ee0b115f6b3ddcba08c68ef97b4711559cf98a09eee70",
+    "agents/implement.md": "acc947acd95e8cb3be3f48067a3368243b1031c19add713fd798535e053f80dd",
     "agents/review-spec.md": "b0dfaeb0c7bf895c8b31d0a868ae5825a42078fd1bb8b2fc5d05cc7543914b36",
     "agents/review-standards.md": "c057529f7a80eae9c0e04c3e932c800304444bbb0c487f38df3841d8d4066994",
     "agents/test.md": "7338508f239b8770cb5c687134b182953934e73c5dd132ab46944a9bd19165f2",
     "commands/quality-check.md": "1bed0ca907207bf92319c5ca52130c5606513bf25eb2e29fb93e57f072f40bba",
     "commands/report-issue.md": "60e1cf886d75060a71f93ed778e775c8f8e6eab3591159262f974fb68f828a12",
-    "commands/work-next-ticket.md": "4f3cbd986a070483f97de5f418ad11113ef9db62b36075bb718ceace35d795e9",
+    "commands/work-next-ticket.md": "4adf096368c716488a5582cddff9b4e2d7d4ab7061e601d7689e07afb3d8a2ee",
     "hooks/block-sensitive-files.sh": "e662d4dafdb39ad1af433ca6001f52d43dfcdea9076907617692e8364ea429fd",
     "hooks/guard-git.sh": "d0becc5ddc2e69c0f16eb29bb982bff583215c5b42635f8def5f5e22de85684b",
     "rules/anti-patterns.md": "f7eb88b05cfc9f02772912a08cf76522a6d691c1d4c3c81fa5a5d654cc9df928",
@@ -24,6 +24,7 @@
     "settings.json": "a94b29fd7077cee688a4e51b1de884ac15579d7d2bca4124519bf014c1363260",
     "skills/dependabot-review/SKILL.md": "293790c74e3368c06fa5b8277ada01e51cbea6125f95602ebbd25e303696fdeb",
     "skills/security-audit/SKILL.md": "9c080e40de69da12804378633532358daa3800396ed45591a16a371517c1a6ca",
-    "commands/explain-ticket.md": "f41a5b222dbf95e5f808cf35442c90ffb021afde967d15876bad7f962cdf5b4c"
+    "commands/explain-ticket.md": "f41a5b222dbf95e5f808cf35442c90ffb021afde967d15876bad7f962cdf5b4c",
+    "commands/quiz-pr.md": "604c52ddf67797e57aa6da3f27595f862f69374f88e71132ce640d383c901ce5"
   }
 }

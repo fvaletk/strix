@@ -60,6 +60,6 @@ When the handoff has `Fix round:` with findings (`file:line — source — probl
 - Verdict: **DONE**, or **STOPPED** with the reason (ambiguity, no seams, can't reproduce, missing env var)
 - Files created or modified, app and spec (bullet list)
 - Behaviors covered, each with its spec (`spec/path:line`)
-- Decisions not in the ticket (keep these minimal)
+- Decisions — the choices that shape the solution (data model, where logic lives, sync vs job, a library, a constraint), not what the ticket already dictates. Max 5, one line each: `<choice> over <alternative> — <why>`. "None" if none. In a fix round, the full list as it now stands.
 - Spec and lint results
 - Fix round: each finding → fixed / disputed (why)

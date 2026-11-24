@@ -4,7 +4,7 @@ description: >
   Runs the full suite, commits the ticket's changes on its branch, pushes it,
   and opens a pull request into the base branch. Use last, after test PASS and
   both reviews CLEAN. Pass the ticket ID, title, URL, branch, the files
-  implement and test changed, and the reviewers' notes.
+  implement and test changed, implement's decisions, and the reviewers' notes.
 tools: Bash, Read
 model: haiku
 color: yellow
@@ -60,6 +60,9 @@ cat > "$body" <<'EOF'
 
 ## Summary
 <2–5 bullets: what changed and why>
+
+## Decisions
+<implement's Decisions bullets, verbatim; "None" if empty>
 
 ## Tests
 <examples / failures from Step 2>
