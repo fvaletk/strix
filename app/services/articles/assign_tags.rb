@@ -136,7 +136,10 @@ module Articles
       taken = tags.where(name: new_tags.map { |t| t[:name] }).pluck(:name)
       return "These new Tags already exist (put them under existing): #{taken.join(', ')}" if taken.any?
 
-      "Every new Tag needs a description" if new_tags.any? { |t| t[:description].to_s.strip.empty? }
+      descriptions = new_tags.map { |t| t[:description].to_s.strip }
+      return "Every new Tag needs a description" if descriptions.any?(&:empty?)
+
+      "Every new Tag description must be a single line" if descriptions.any? { |d| d.match?(/[\r\n]/) }
     end
 
     def tags = @article.user.tags
