@@ -10,3 +10,6 @@ shared:
   chunking:
     words: 375
     overlap_words: 50
+  retrieval:
+    k: 8
+    min_similarity: 0.6

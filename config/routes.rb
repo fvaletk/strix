@@ -14,4 +14,5 @@ Rails.application.routes.draw do
   resources :articles, only: %i[index show create] do
     resource :tagging, only: :create, module: :articles
   end
+  resources :questions, only: %i[index show new create]
 end
