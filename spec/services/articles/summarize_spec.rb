@@ -71,6 +71,31 @@ RSpec.describe Articles::Summarize do
     end
   end
 
+  [ [ "a blank", [ "Point one", "  ", "c" ] ], [ "a non-string", [ "Point one", 42, "c" ] ] ].each do |label, points|
+    context "with #{label} key point" do
+      let(:content) { { "tldr" => "Bees make honey.", "key_points" => points } }
+
+      before { article.update!(summary_tldr: "old", summary_key_points: %w[x y z]) }
+
+      it "raises a non-retryable Llm::Error naming the key points" do
+        expect { call }.to raise_error(an_instance_of(Llm::Error).and(having_attributes(retryable?: false, message: /key point/i)))
+      end
+
+      it "keeps the old Summary", :aggregate_failures do
+        expect { expect { call }.to raise_error(Llm::Error) }.not_to(change { article.reload.summary_key_points })
+      end
+    end
+  end
+
+  context "with padded key points" do
+    let(:content) { { "tldr" => "Bees make honey.", "key_points" => [ " a ", "b\n", "\tc" ] } }
+
+    it "stores them stripped" do
+      call
+      expect(article.reload.summary_key_points).to eq(%w[a b c])
+    end
+  end
+
   context "with an empty TL;DR" do
     let(:content) { { "tldr" => " ", "key_points" => %w[a b c] } }
 
