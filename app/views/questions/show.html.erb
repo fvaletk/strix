@@ -1,0 +1,22 @@
+<% if flash[:alert].present? %>
+  <p role="alert"><%= flash[:alert] %></p>
+<% end %>
+<h1><%= @question.text %></h1>
+<% if @question.answer %>
+  <section>
+    <h2>Answer</h2>
+    <p><%= @question.answer.text %></p>
+    <% if @question.answer.cited_articles.any? %>
+      <h2>Sources</h2>
+      <ul>
+        <% @question.answer.cited_articles.each do |article| %>
+          <li><%= link_to ArticlePresenter.new(article).display_title, article_path(article) %></li>
+        <% end %>
+      </ul>
+    <% end %>
+  </section>
+<% else %>
+  <p role="status">No answer yet.</p>
+<% end %>
+<%= link_to "Ask another Question", new_question_path %>
+<%= link_to "Past Questions", questions_path %>

@@ -1,5 +1,6 @@
 class Chunk < ApplicationRecord
   belongs_to :article
+  has_many :answer_chunks, dependent: :destroy
 
   has_neighbors :embedding
 

@@ -10,10 +10,31 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_100002) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_25_100003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
+
+  create_table "answer_chunks", force: :cascade do |t|
+    t.bigint "answer_id", null: false
+    t.bigint "chunk_id", null: false
+    t.float "similarity", null: false
+    t.integer "rank", null: false
+    t.boolean "cited", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["answer_id", "rank"], name: "index_answer_chunks_on_answer_id_and_rank", unique: true
+    t.index ["answer_id"], name: "index_answer_chunks_on_answer_id"
+    t.index ["chunk_id"], name: "index_answer_chunks_on_chunk_id"
+  end
+
+  create_table "answers", force: :cascade do |t|
+    t.bigint "question_id", null: false
+    t.text "text", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["question_id"], name: "index_answers_on_question_id", unique: true
+  end
 
   create_table "article_tags", force: :cascade do |t|
     t.bigint "article_id", null: false
@@ -71,6 +92,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_100002) do
     t.index ["subject_type", "subject_id"], name: "index_llm_calls_on_subject"
   end
 
+  create_table "questions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.text "text", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_questions_on_user_id"
+  end
+
   create_table "tags", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "name", null: false
@@ -86,9 +115,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_100002) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "answer_chunks", "answers"
+  add_foreign_key "answer_chunks", "chunks"
+  add_foreign_key "answers", "questions"
   add_foreign_key "article_tags", "articles"
   add_foreign_key "article_tags", "tags"
   add_foreign_key "articles", "users"
   add_foreign_key "chunks", "articles"
+  add_foreign_key "questions", "users"
   add_foreign_key "tags", "users"
 end
