@@ -19,12 +19,16 @@ module Llm
       @config = Rails.application.config_for(:strix).fetch(:llm)
     end
 
-    def generate(system:, prompt:, purpose:, subject: nil, schema: nil, thinking: @config.fetch(:thinking_level))
+    # validate: optional callable run on the parsed content inside the logged call; an Llm::Error it
+    # raises is logged as a failed LlmCall (with token usage) and re-raised.
+    def generate(system:, prompt:, purpose:, subject: nil, schema: nil, validate: nil, thinking: @config.fetch(:thinking_level))
       model = @config.fetch(:text_model)
       tracking(purpose:, model:, subject:) do |usage|
         data = post("/v1beta/models/#{model}:generateContent", request_body(system:, prompt:, schema:, thinking:))
         usage.merge!(usage_from(data))
-        Response.new(content: extract(data, parse: schema.present?), **usage)
+        content = extract(data, parse: schema.present?)
+        validate&.call(content)
+        Response.new(content:, **usage)
       end
     end
 

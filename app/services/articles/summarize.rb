@@ -34,7 +34,8 @@ module Articles
         prompt: "Title: #{@article.title}\n\n#{@article.text}",
         purpose: "summary",
         subject: @article,
-        schema: SCHEMA
+        schema: SCHEMA,
+        validate: method(:parse_summary)
       )
       tldr, key_points = parse_summary(response.content)
       @article.update!(summary_tldr: tldr, summary_key_points: key_points)

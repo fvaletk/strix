@@ -35,6 +35,29 @@ RSpec.describe Articles::Summarize do
     expect(client).to have_received(:generate).with(a_hash_including(schema: a_hash_including(properties:)))
   end
 
+  describe "the validate: callable passed to the client" do
+    let(:validate) do
+      captured = nil
+      allow(client).to receive(:generate) { |**opts| captured = opts[:validate] and response_with(content) }
+      call
+      captured
+    end
+
+    it "raises a non-retryable Llm::Error for an empty TL;DR" do
+      expect { validate.call("tldr" => "", "key_points" => %w[a b c]) }
+        .to raise_error(an_instance_of(Llm::Error).and(having_attributes(retryable?: false)))
+    end
+
+    it "raises a non-retryable Llm::Error for the wrong number of key points" do
+      expect { validate.call("tldr" => "x", "key_points" => %w[a]) }
+        .to raise_error(an_instance_of(Llm::Error).and(having_attributes(retryable?: false)))
+    end
+
+    it "accepts a valid Summary" do
+      expect { validate.call(content) }.not_to raise_error
+    end
+  end
+
   it "replaces an existing Summary" do
     article.update!(summary_tldr: "old", summary_key_points: %w[x y z w])
     call
