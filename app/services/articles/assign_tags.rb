@@ -2,6 +2,7 @@ module Articles
   # Tags an Article with a tool-using agent. Strix owns the loop; Llm::Client#chat runs one turn.
   # assign_tags is a terminal tool: once it succeeds, no further chat call is made.
   # Returns Result.success(article) or Result.failure(message, code: :tagging_failed) (sets tagging_failed).
+  # Without a Summary it fails with code :missing_summary and makes no chat call.
   # Retryable Llm::Errors propagate so the job can retry.
   class AssignTags
     MAX_TURNS = 5
@@ -51,6 +52,8 @@ module Articles
     end
 
     def call
+      return fail_tagging("Article has no Summary", code: :missing_summary) if @article.summary_tldr.blank?
+
       messages = [ initial_message ]
       MAX_TURNS.times do
         turn = @client.chat(system: SYSTEM_PROMPT, messages:, tools: TOOLS, purpose: "tagging", subject: @article)
@@ -143,9 +146,9 @@ module Articles
       Result.success(@article)
     end
 
-    def fail_tagging(message)
+    def fail_tagging(message, code: :tagging_failed)
       @article.update!(tagging_failed: true)
-      Result.failure(message, code: :tagging_failed)
+      Result.failure(message, code:)
     end
   end
 end
