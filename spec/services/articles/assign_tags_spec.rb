@@ -164,6 +164,26 @@ RSpec.describe Articles::AssignTags do
     end
   end
 
+  context "when the Article has no Summary" do
+    before do
+      article.update!(summary_tldr: " ")
+      article.tags << create(:tag, user:, name: "old")
+      allow(client).to receive(:chat)
+    end
+
+    it "makes no chat call" do
+      result
+      expect(client).not_to have_received(:chat)
+    end
+
+    it "fails with :missing_summary, flags tagging_failed and leaves Tags unchanged", :aggregate_failures do
+      expect(result).to be_failure
+      expect(result.code).to eq(:missing_summary)
+      expect(article.reload.tagging_failed).to be(true)
+      expect(article.tags.map(&:name)).to eq([ "old" ])
+    end
+  end
+
   context "when the loop does not succeed" do
     let(:bad_assign) { turn(calls: [ call_for("assign_tags", { "existing" => [ "nope" ], "new" => [] }) ]) }
 
