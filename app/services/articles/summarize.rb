@@ -52,7 +52,11 @@ module Articles
         raise Llm::Error.new("Summary has #{key_points.size} key points, expected #{KEY_POINTS_RANGE.min}-#{KEY_POINTS_RANGE.max}", retryable: false)
       end
 
-      [ tldr, key_points ]
+      unless key_points.all? { |point| point.is_a?(String) && point.strip.present? }
+        raise Llm::Error.new("Summary key points must be non-blank strings", retryable: false)
+      end
+
+      [ tldr, key_points.map(&:strip) ]
     end
   end
 end
