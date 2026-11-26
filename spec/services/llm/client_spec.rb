@@ -130,6 +130,29 @@ RSpec.describe Llm::Client do
       end
     end
 
+    context "when a validate: callable is given" do
+      before { stub_request(:post, endpoint).to_return(status: 200, body: body.to_json, headers: json_headers) }
+
+      it "runs it on the parsed content and returns the response" do
+        seen = nil
+        result = generate(validate: ->(content) { seen = content })
+        expect([ seen, result.content ]).to eq([ "Hello there", "Hello there" ])
+      end
+
+      it "logs an Llm::Error it raises as a failed call with token usage, and re-raises it unchanged", :aggregate_failures do
+        validate = ->(_content) { raise Llm::Error.new("too short", retryable: false) }
+        expect(raised_error_with(validate:)).to be_an(Llm::Error).and have_attributes(message: "too short", retryable?: false)
+        expect(LlmCall.last).to have_attributes(status: "error", error_message: "too short",
+                                                input_tokens: 12, output_tokens: 5, thinking_tokens: 30)
+      end
+
+      it "logs only the failed call", :aggregate_failures do
+        validate = ->(_content) { raise Llm::Error.new("nope") }
+        raised_error_with(validate:)
+        expect(LlmCall.pluck(:status)).to eq([ "error" ])
+      end
+    end
+
     context "when the call fails" do
       let(:error_body) { { error: { message: "nope" } }.to_json }
 
