@@ -1,16 +1,35 @@
-<h1>Ask a Question</h1>
+<h1 class="font-serif text-4xl font-semibold">Ask your Articles</h1>
+<p class="mt-2 text-ink-2">Ask anything. Strix answers from what you've saved and shows its sources.</p>
 
-<%= form_with model: @question, url: questions_path do |form| %>
-  <% if @question.errors.any? %>
-    <ul role="alert">
-      <% @question.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
-      <% end %>
-    </ul>
+<section class="mt-6 rounded-2xl border border-border bg-surface p-5">
+  <%= form_with model: @question, url: questions_path do |form| %>
+    <% if @question.errors.any? %>
+      <ul role="alert" class="mb-3 rounded-[10px] bg-warn-soft px-4 py-3 text-warn-ink">
+        <% @question.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    <% end %>
+    <%= form.label :text, "Your Question", class: "mb-2 block font-semibold" %>
+    <%= form.text_area :text, rows: 4, aria: { describedby: "ask-help" },
+          class: "w-full rounded-[10px] border border-control bg-field px-4 py-3 font-serif text-xl text-ink" %>
+    <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+      <p id="ask-help" class="text-sm text-ink-3">Searches all <%= pluralize(@articles_count, "Article") %></p>
+      <%= form.submit "Ask", class: "#{button_classes(:primary)} cursor-pointer" %>
+    </div>
   <% end %>
-  <%= form.label :text, "Question" %>
-  <%= form.text_area :text %>
-  <%= form.submit "Ask" %>
-<% end %>
+</section>
 
-<%= link_to "Past Questions", questions_path %>
+<% if @recent_questions.any? %>
+  <section class="mt-10">
+    <div class="flex items-center justify-between">
+      <h2 class="font-serif text-2xl font-semibold">Recent Questions</h2>
+      <%= link_to "See all", questions_path, class: "inline-flex min-h-11 items-center text-accent hover:underline" %>
+    </div>
+    <div class="mt-3 flex flex-col gap-3">
+      <% @recent_questions.each do |question| %>
+        <%= render QuestionRowComponent.new(question: question) %>
+      <% end %>
+    </div>
+  </section>
+<% end %>

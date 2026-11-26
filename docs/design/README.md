@@ -77,6 +77,7 @@ Every text colour above passes 4.5:1 on the background it's used on. `sage` and 
 6. **Ask** (`/questions/new`) — serif "Ask your Articles" h1, one-line promise, form card (label "Your Question", serif textarea, "Searches all N Articles", primary "Ask"); "Recent Questions" (3, with "See all").
 7. **Question, answered** (`/questions/:id`) — back link "Questions"; eyebrow "Question", serif 36px Question, meta "Asked <date> · searched all Articles"; Answer card (eyebrow "Answer", serif 20px paragraphs with citation markers); "Cited Articles" source cards; primary "Ask another Question".
 8. **Question, nothing found** — same header; Answer card is the empty state: "Nothing in your Articles covers this." + helper + "Save an Article" (primary) and "Ask something else" (secondary).
-9. **Questions list** (`/questions`) — serif h1 + count, primary "Ask a Question"; rows: serif Question, date, result pill ("N Articles cited" in mint, "Nothing found" in neutral chip).
+9. **Questions list** (`/questions`) — serif h1 + count, primary "Ask a Question"; rows: serif Question, date, result pill ("N Articles cited" in mint, "Nothing found" in neutral chip, "No answer" in warn-soft/warn).
+10. **Question, no answer** (`/questions/:id` when answering failed) — same header as 7; in place of the Answer card, a failure notice: first line "Couldn't answer this Question. Try again." (only right after the failed ask, from the flash), then "No answer yet."; primary "Ask another Question". No retry button.
 
 Header on every page: owl mark + serif "Strix" wordmark linking home; nav Articles · Ask · Questions, current item in `neutral-chip` bold.

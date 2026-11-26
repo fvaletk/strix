@@ -1,36 +1,66 @@
-<h1><%= ArticlePresenter.new(@article).display_title %></h1>
-<dl>
-  <dt>URL</dt><dd><%= @article.url %></dd>
-  <dt>Title</dt><dd><%= @article.title %></dd>
-  <dt>Status</dt><dd><%= @article.status %></dd>
-  <% if @article.failed? && @article.failure_reason.present? %>
-    <dt>Failure reason</dt><dd><%= @article.failure_reason %></dd>
-  <% end %>
-</dl>
-<% if @article.summary_tldr.present? %>
-  <section>
-    <h2>TL;DR</h2>
-    <p><%= @article.summary_tldr %></p>
-    <h2>Key points</h2>
-    <ol>
-      <% @article.summary_key_points.each do |point| %>
-        <li><%= point %></li>
-      <% end %>
-    </ol>
-  </section>
+<% article = ArticlePresenter.new(@article) %>
+<%= link_to "← Articles", articles_path, class: "inline-flex min-h-11 items-center text-accent hover:underline" %>
+
+<h1 class="mt-2 <%= article.title.present? ? "font-serif text-[42px] leading-tight font-semibold" : "font-sans text-xl text-ink-2 break-all" %>"><%= article.display_title %></h1>
+
+<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-3">
+  <%= link_to "#{article.domain} ↗", article.url, target: "_blank", rel: "noopener", class: "inline-flex min-h-11 items-center text-accent hover:underline" %>
+  <span>Saved <%= article.saved_on %></span>
+  <% if article.word_count_label %><span><%= article.word_count_label %></span><% end %>
+  <%= render StatusBadgeComponent.new(status: article.status) %>
+</div>
+
+<% if article.processing? %>
+  <div class="mt-6"><%= render NoticeComponent.new(variant: :info) do %>Strix is reading this page…<% end %></div>
+  <div class="mt-6 flex flex-col gap-3 rounded-2xl border border-border bg-surface p-6" aria-hidden="true">
+    <div class="h-4 w-full rounded bg-divider"></div>
+    <div class="h-4 w-5/6 rounded bg-divider"></div>
+    <div class="h-4 w-2/3 rounded bg-divider"></div>
+  </div>
+<% elsif article.failed? %>
+  <div class="mt-6">
+    <%= render NoticeComponent.new(variant: :failure) do %>
+      <p class="font-semibold">Couldn't extract this page</p>
+      <% if article.failure_reason.present? %><p>Reason: <%= article.failure_reason %></p><% end %>
+    <% end %>
+  </div>
 <% end %>
-<% if @article.tagging_failed? %>
-  <p role="status">Tagging failed</p>
-  <%= button_to "Retry tagging", article_tagging_path(@article) %>
-<% end %>
-<% if @article.tags.any? %>
-  <section>
-    <h2>Tags</h2>
-    <ul>
-      <% @article.tags.order(:name).each do |tag| %>
-        <li><%= tag.name %> <small><%= tag.description %></small></li>
+
+<% if article.summary_tldr.present? %>
+  <section class="mt-6 rounded-2xl border border-border bg-surface p-6">
+    <p class="text-xs font-semibold uppercase tracking-wider text-ink-3">Summary</p>
+    <p class="mt-2 font-serif text-[22px] leading-snug"><%= article.summary_tldr %></p>
+    <hr class="my-5 border-divider">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-3">Key points</h2>
+    <ul class="mt-3 flex flex-col gap-3 font-serif text-lg text-reading">
+      <% article.summary_key_points.each do |point| %>
+        <li class="flex gap-3"><span aria-hidden="true" class="mt-2.5 size-2 shrink-0 rounded-full bg-accent"></span><%= point %></li>
       <% end %>
     </ul>
   </section>
 <% end %>
-<%= link_to "Back to Articles", articles_path %>
+
+<% if article.tagging_failed? %>
+  <section class="mt-6">
+    <h2 class="sr-only">Tags</h2>
+    <%= render NoticeComponent.new(variant: :partial) do %>
+      <p>Tagging failed. The Summary and search still work.</p>
+      <%= button_to "Retry tagging", article_tagging_path(article), class: "#{button_classes(:secondary)} mt-3 cursor-pointer" %>
+    <% end %>
+  </section>
+<% end %>
+<% if article.sorted_tags.any? %>
+  <section class="mt-6">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-3">Tags</h2>
+    <ul class="mt-2 flex flex-wrap gap-2">
+      <% article.sorted_tags.each do |tag| %>
+        <li><%= render TagChipComponent.new(name: tag.name, size: :article, description: tag.description) %></li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<div class="mt-8 flex flex-wrap gap-3">
+  <%= link_to "Open original ↗", article.url, target: "_blank", rel: "noopener", class: button_classes(:secondary) %>
+  <% if article.ready? %><%= link_to "Ask your Articles", new_question_path, class: button_classes(:quiet) + " !px-2" %><% end %>
+</div>

@@ -79,3 +79,5 @@ end
 
 # Readable main-text extraction for Extraction::StaticFetch
 gem "ruby-readability", "~> 0.7"
+
+gem "view_component", "~> 4.25"
