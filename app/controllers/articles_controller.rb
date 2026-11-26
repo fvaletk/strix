@@ -1,6 +1,6 @@
 class ArticlesController < ApplicationController
   def index
-    @articles = current_user.articles.order(created_at: :desc, id: :desc)
+    @articles = current_user.articles.includes(:tags).order(created_at: :desc, id: :desc)
     @article = Article.new
   end
 
@@ -16,7 +16,7 @@ class ArticlesController < ApplicationController
       redirect_to result.data
     else
       @article = result.data
-      @articles = current_user.articles.order(created_at: :desc, id: :desc)
+      @articles = current_user.articles.includes(:tags).order(created_at: :desc, id: :desc)
       render :index, status: :unprocessable_entity
     end
   end
