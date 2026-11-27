@@ -108,7 +108,31 @@ class Extraction
       word_count = text.split.size
       return Result.failure("needs JavaScript", code: :needs_javascript) if word_count < @min_words
 
-      Result.success({ title: document.title.to_s.strip.presence, text:, word_count: })
+      Result.success({ title: title_for(html, document), text:, word_count: })
+    end
+
+    # Best title on the page: og:title (swapped for the full <h1> when it was
+    # cut short with an ellipsis), then the single main-content <h1>, then <title>.
+    def title_for(html, document)
+      og_title = clean(Nokogiri::HTML(html).at_css('meta[property="og:title"]')&.[]("content"))
+      return full_og_title(og_title, Nokogiri::HTML(html).css("h1")) if og_title
+
+      # Readability's default output strips <h1> tags, so re-run it keeping them.
+      content_h1s = Nokogiri::HTML(Readability::Document.new(html, tags: %w[div p h1]).content).css("h1")
+      return clean(content_h1s.first.text) if content_h1s.size == 1 && clean(content_h1s.first.text)
+
+      clean(document.title)
+    end
+
+    def full_og_title(og_title, h1s)
+      return og_title unless og_title.end_with?("…", "...")
+
+      prefix = og_title.sub(/(…|\.\.\.)\z/, "").strip
+      h1s.map { |h1| clean(h1.text) }.compact.find { |text| text.start_with?(prefix) } || og_title
+    end
+
+    def clean(value)
+      value.to_s.gsub(/\s+/, " ").strip.presence
     end
   end
 end
