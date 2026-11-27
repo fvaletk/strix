@@ -29,6 +29,69 @@ RSpec.describe Extraction do
     end
   end
 
+  context "when choosing the title" do
+    def page(head: "", h1s: [])
+      paragraphs = Array.new(25) { |i| "<p>Paragraph #{i} has some words to fill the page okay.</p>" }.join
+      headings = h1s.map { |h| "<h1>#{h}</h1>" }.join
+      "<html><head>#{head}</head><body><article>#{headings}#{paragraphs}</article></body></html>"
+    end
+
+    def saved_title(body)
+      stub_page("https://example.com/post", body:)
+      expect(result).to be_success
+      article.reload.title
+    end
+
+    it "uses og:title over the <title>" do
+      html = page(head: '<title>Medium</title><meta property="og:title" content="The Real Headline">', h1s: [ "Other" ])
+      expect(saved_title(html)).to eq("The Real Headline")
+    end
+
+    it "uses the full <h1> when og:title is cut short with an ellipsis character" do
+      html = page(head: '<title>Medium</title><meta property="og:title" content="Building Things: From A to…">',
+                  h1s: [ "Building Things: From A to Z" ])
+      expect(saved_title(html)).to eq("Building Things: From A to Z")
+    end
+
+    it "uses the full <h1> when og:title is cut short with three dots" do
+      html = page(head: '<meta property="og:title" content="Building Things: From A to...">', h1s: [ "Building Things: From A to Z" ])
+      expect(saved_title(html)).to eq("Building Things: From A to Z")
+    end
+
+    it "keeps the truncated og:title when no <h1> starts with it" do
+      html = page(head: '<meta property="og:title" content="Building Things…">', h1s: [ "Unrelated" ])
+      expect(saved_title(html)).to eq("Building Things…")
+    end
+
+    it "uses the single <h1> from the main content when there is no og:title" do
+      html = page(head: "<title>Post | Site</title>", h1s: [ "The Post" ])
+      expect(saved_title(html)).to eq("The Post")
+    end
+
+    it "falls back to the <title> when there are several <h1>s" do
+      html = page(head: "<title>Post | Site</title>", h1s: [ "One", "Two" ])
+      expect(saved_title(html)).to eq("Post | Site")
+    end
+
+    it "falls back to the <title> when there is no og:title or <h1>" do
+      expect(saved_title(page(head: "<title>Just Title</title>"))).to eq("Just Title")
+    end
+
+    it "saves with no title when the page has none of them" do
+      expect(saved_title(page)).to be_nil
+    end
+
+    it "ignores a blank og:title and falls back to the single <h1>" do
+      html = page(head: '<title>Medium</title><meta property="og:title" content="   ">', h1s: [ "The Post" ])
+      expect(saved_title(html)).to eq("The Post")
+    end
+
+    it "trims and collapses whitespace in the title" do
+      html = page(head: %(<meta property="og:title" content="  Spaced \n  out\t title  ">))
+      expect(saved_title(html)).to eq("Spaced out title")
+    end
+  end
+
   context "with compact markup that has no whitespace between blocks" do
     let(:compact_html) do
       paragraphs = Array.new(25) { |i| "<p>Paragraph #{i} has some words to fill the page okay.</p>" }.join
