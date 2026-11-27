@@ -7,5 +7,8 @@ class Tag < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :user_id },
                    format: { with: KEBAB_CASE, message: "must be lowercase kebab-case" }
-  validates :description, presence: true
+  before_validation { self.description = description.strip if description.is_a?(String) }
+
+  validates :description, presence: true,
+                          format: { without: /[\r\n]/, message: "must be a single line" }
 end

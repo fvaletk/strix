@@ -102,7 +102,8 @@ RSpec.describe Articles::AssignTags do
       "more than 5 Tags in total" => -> { { new: %w[a b c d e f].map { |n| { "name" => n, "description" => "d" } } } },
       "a name that is not kebab-case" => -> { { new: [ { "name" => "Not Kebab", "description" => "d" } ] } },
       "an existing name that does not exist" => -> { { existing: [ "nope" ] } },
-      "a new name that already exists" => -> { { new: [ { "name" => "ruby", "description" => "d" } ] } }
+      "a new name that already exists" => -> { { new: [ { "name" => "ruby", "description" => "d" } ] } },
+      "a multi-line new description" => -> { { new: [ { "name" => "cats", "description" => "line one\nline two" } ] } }
     }.each do |label, args|
       it "returns an error to the model for #{label} and accepts a corrected retry", :aggregate_failures do
         messages = error_for(assign(**instance_exec(&args)))
@@ -130,6 +131,13 @@ RSpec.describe Articles::AssignTags do
         expect(result).to be_success
         expect(article.reload.tags.map(&:name)).to eq([ "bees" ])
       end
+    end
+
+    it "accepts a description padded with surrounding whitespace, storing it stripped", :aggregate_failures do
+      padded = assign(new: [ { "name" => "cats", "description" => "  About cats\n" } ])
+      script(list_turn, padded)
+      expect(result).to be_success
+      expect(user.tags.find_by(name: "cats").description).to eq("About cats")
     end
 
     it "leaves the Article's Tags unchanged after a rejected assign" do

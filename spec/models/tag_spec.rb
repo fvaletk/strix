@@ -19,6 +19,18 @@ RSpec.describe Tag, type: :model do
     end
   end
 
+  it "rejects a description with a line break", :aggregate_failures do
+    [ "one\ntwo", "one\r\ntwo", "one\rtwo" ].each do |description|
+      expect(build(:tag, description:)).not_to be_valid
+    end
+  end
+
+  it "strips whitespace around a single-line description", :aggregate_failures do
+    tag = build(:tag, description: "  A one-liner \n")
+    expect(tag).to be_valid
+    expect(tag.description).to eq("A one-liner")
+  end
+
   it "allows the same name for different Users" do
     create(:tag, name: "ruby")
     expect(build(:tag, name: "ruby")).to be_valid
